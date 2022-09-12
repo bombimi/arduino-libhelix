@@ -150,6 +150,8 @@ class MP3DecoderHelix : public CommonHelix {
             }
         }
 
+    	static const int NUM_MATCHING_AUDIO_INFOS_BEFORE_CHANGE = 10;
+    	int              numMatchingAudioInfos                  = 0;
         // return the resulting PWM data
         void provideResult(MP3FrameInfo &info){
             // increase PWM size if this fails
@@ -157,6 +159,23 @@ class MP3DecoderHelix : public CommonHelix {
 
             LOG_HELIX(Debug, "=> provideResult: %d", info.outputSamps);
             if (info.outputSamps>0){
+	            // check if the audio info has changed
+	            if (info.bitrate != mp3FrameInfo.bitrate
+	                || info.bitsPerSample != mp3FrameInfo.bitsPerSample
+	                || info.nChans != mp3FrameInfo.nChans || info.samprate != mp3FrameInfo.samprate)
+	            {
+	                numMatchingAudioInfos = 0;
+	                mp3FrameInfo          = info;
+	            }
+	            else
+	            {
+	                ++numMatchingAudioInfos;
+	            }
+	
+	            if (numMatchingAudioInfos < NUM_MATCHING_AUDIO_INFOS_BEFORE_CHANGE)
+	            {
+	                return;
+	            }
                 // provide result
                 if(pwmCallback!=nullptr){
                     // output via callback
